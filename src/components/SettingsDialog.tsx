@@ -76,13 +76,21 @@ export function SettingsDialog({ open, onClose, onSaved }: Props) {
   const [configPath, setConfigPath] = useState<string | null>(null);
   const [engines, setEngines] = useState<EngineStatus[]>([]);
   const [models, setModels] = useState<string[]>([]);
+  const [modelsOpen, setModelsOpen] = useState(false);
+  const [modelQuery, setModelQuery] = useState('');
+  const [modelCursor, setModelCursor] = useState(-1);
+  const [modelsUp, setModelsUp] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const firstField = useRef<HTMLInputElement>(null);
+  const modelField = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setStatus(null);
     setApiKey('');
+    setModelsOpen(false);
+    setModelQuery('');
+    setModelCursor(-1);
 
     fetch('/api/config')
       .then((response) => response.json() as Promise<PublicConfig>)
@@ -113,12 +121,56 @@ export function SettingsDialog({ open, onClose, onSaved }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!modelsOpen) return;
+    const onDown = (event: MouseEvent) => {
+      if (!modelField.current?.contains(event.target as Node)) {
+        setModelsOpen(false);
+        setModelQuery('');
+        setModelCursor(-1);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [modelsOpen]);
+
   if (!open) return null;
 
   const usesCli = provider === 'claude-cli';
   const engine = engines.find((entry) => entry.id === provider) ?? null;
   const engineReady = Boolean(engine?.installed && engine.signedIn === true);
   const savedKeyApplies = hasSavedKey && savedProvider === provider;
+
+  const visibleModels = modelQuery.trim()
+    ? models.filter((name) => name.toLowerCase().includes(modelQuery.trim().toLowerCase()))
+    : models;
+
+  function closeModels() {
+    setModelsOpen(false);
+    setModelQuery('');
+    setModelCursor(-1);
+  }
+
+  /** Position the list against the field: up when it is low in the viewport, down otherwise. */
+  function showModels() {
+    const rect = modelField.current?.getBoundingClientRect();
+    const spaceAbove = rect?.top ?? 0;
+    const spaceBelow = rect ? window.innerHeight - rect.bottom : 0;
+    setModelsUp(spaceBelow < 240 || (spaceAbove >= 240 && spaceAbove > spaceBelow));
+    setModelQuery('');
+    setModelCursor(-1);
+    setModelsOpen(true);
+  }
+
+  function openModels() {
+    if (models.length === 0) return;
+    showModels();
+  }
+
+  function pickModel(name: string) {
+    setModel(name);
+    closeModels();
+  }
 
   const draft = () => ({
     provider,
@@ -143,6 +195,7 @@ export function SettingsDialog({ open, onClose, onSaved }: Props) {
       // to a CLI, and `sonnet` means nothing to OpenAI.
       setModel('');
       setModels([]);
+      closeModels();
     }
     setPreset(option);
     setProvider(option.provider);
@@ -170,15 +223,17 @@ export function SettingsDialog({ open, onClose, onSaved }: Props) {
     setStatus({ tone: 'busy', message: 'Asking the provider for its model list…' });
     try {
       const data = await call('/api/models', { method: 'POST', body: JSON.stringify(draft()) });
-      setModels(data.models ?? []);
+      const list: string[] = data.models ?? [];
+      setModels(list);
       setStatus({
         tone: 'ok',
         message:
-          data.models?.length > 0
-            ? `Found ${data.models.length} model${data.models.length === 1 ? '' : 's'}.`
+          list.length > 0
+            ? `Found ${list.length} model${list.length === 1 ? '' : 's'}.`
             : 'The provider returned no models. Type a name instead.',
       });
-      if (!model && data.models?.[0]) setModel(data.models[0]);
+      if (!model && list[0]) setModel(list[0]);
+      if (list.length > 0) showModels();
     } catch (error) {
       setStatus({ tone: 'error', message: error instanceof Error ? error.message : 'Failed.' });
     }
@@ -365,20 +420,119 @@ export function SettingsDialog({ open, onClose, onSaved }: Props) {
           <div className="flex flex-col gap-1.5">
             <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-mute">Model</span>
             <div className="flex gap-2">
-              <input
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                placeholder={usesCli ? 'Leave blank for your Claude Code default' : 'Fetch the list, or type a name'}
-                spellCheck={false}
-                list="boxology-models"
-                className="min-w-0 flex-1 rounded-md border border-line bg-ink px-3 py-2 font-mono text-[12.5px]
-                           text-text placeholder:text-mute/50 focus:border-accent/60 focus:outline-none"
-              />
-              <datalist id="boxology-models">
-                {models.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
+              <div ref={modelField} className="relative min-w-0 flex-1">
+                <input
+                  value={model}
+                  onChange={(event) => {
+                    setModel(event.target.value);
+                    setModelQuery(event.target.value);
+                    setModelsOpen(models.length > 0);
+                    setModelCursor(-1);
+                  }}
+                  onClick={() => {
+                    if (!modelsOpen) openModels();
+                  }}
+                  onKeyDown={(event) => {
+                    if (models.length === 0) return;
+                    if (event.key === 'ArrowDown') {
+                      event.preventDefault();
+                      if (!modelsOpen) {
+                        openModels();
+                        setModelCursor(0);
+                        return;
+                      }
+                      setModelCursor((index) => Math.min(index + 1, visibleModels.length - 1));
+                    } else if (event.key === 'ArrowUp') {
+                      event.preventDefault();
+                      if (!modelsOpen) {
+                        openModels();
+                        setModelCursor(models.length - 1);
+                        return;
+                      }
+                      setModelCursor((index) => Math.max(index - 1, 0));
+                    } else if (event.key === 'Enter' && modelsOpen && modelCursor >= 0) {
+                      event.preventDefault();
+                      pickModel(visibleModels[modelCursor]!);
+                    } else if (event.key === 'Escape' && modelsOpen) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      closeModels();
+                    } else if (event.key === 'Tab') {
+                      closeModels();
+                    }
+                  }}
+                  role="combobox"
+                  aria-expanded={modelsOpen}
+                  aria-controls="boxology-model-list"
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    modelsOpen && modelCursor >= 0 ? `boxology-model-${modelCursor}` : undefined
+                  }
+                  placeholder={usesCli ? 'Leave blank for your Claude Code default' : 'Fetch the list, or type a name'}
+                  spellCheck={false}
+                  className="w-full rounded-md border border-line bg-ink px-3 py-2 pr-8 font-mono text-[12.5px]
+                             text-text placeholder:text-mute/50 focus:border-accent/60 focus:outline-none"
+                />
+                {models.length > 0 ? (
+                  <svg
+                    aria-hidden="true"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-mute"
+                  >
+                    <path
+                      d="M2.5 4.5 6 8l3.5-3.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : null}
+                {modelsOpen ? (
+                  <ul
+                    id="boxology-model-list"
+                    role="listbox"
+                    aria-label="Available models"
+                    className={`absolute left-0 right-0 z-20 max-h-[300px] overflow-y-auto rounded-md border border-line
+                                bg-raise py-1 shadow-[0_18px_40px_-12px_rgba(0,0,0,0.9)]
+                                ${modelsUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
+                  >
+                    {visibleModels.length === 0 ? (
+                      <li role="presentation" className="px-3 py-2 text-[12px] text-mute">
+                        No model matches “{modelQuery.trim()}”.
+                      </li>
+                    ) : (
+                      visibleModels.map((name, index) => (
+                        <li
+                          key={name}
+                          id={`boxology-model-${index}`}
+                          role="option"
+                          aria-selected={name === model}
+                          onMouseDown={(event) => {
+                            // mousedown, not click: keep focus in the input so the
+                            // outside-click handler does not close the list first.
+                            event.preventDefault();
+                            pickModel(name);
+                          }}
+                          onMouseEnter={() => setModelCursor(index)}
+                          className={`cursor-pointer truncate px-3 py-1.5 font-mono text-[12px] ${
+                            index === modelCursor
+                              ? 'bg-accent/10 text-text'
+                              : name === model
+                                ? 'text-text'
+                                : 'text-mute'
+                          }`}
+                        >
+                          {name}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                ) : null}
+              </div>
               <button type="button" className="btn shrink-0 px-3 py-2" onClick={fetchModels}>
                 {usesCli ? 'Show names' : 'Fetch models'}
               </button>
@@ -387,7 +541,7 @@ export function SettingsDialog({ open, onClose, onSaved }: Props) {
               <p className="text-[11.5px] text-mute">
                 {usesCli
                   ? `Aliases this CLI accepts: ${models.join(', ')} — or a full model id.`
-                  : `${models.length} available — start typing to filter the list.`}
+                  : `${models.length} available — click the field or start typing.`}
               </p>
             ) : null}
           </div>
