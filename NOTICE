@@ -1,0 +1,31 @@
+Boxology
+Copyright 2026 Dinesh Puthiyedath
+
+This product includes software developed by JGraph Ltd and contributors
+(https://github.com/jgraph/drawio-mcp), licensed under the Apache License,
+Version 2.0. Specifically:
+
+  shared/xml-essentials.md
+    Vendored verbatim from jgraph/drawio-mcp (shared/xml-essentials.md) and
+    compiled into worker/reference.ts by scripts/build-reference.ts. It is the
+    canonical source of draw.io XML generation guidance used in the system
+    prompt. Run `bun run ref` after updating it.
+
+  draw.io viewer (vendor/viewer-static.min.js)
+    Vendored byte-for-byte from https://viewer.diagrams.net/js/viewer-static.min.js
+    and served from this app's own origin, so preview and image export work
+    offline and without disclosing diagrams to a third party. The bundle's
+    optional stencil, style and math paths still default to diagrams.net and are
+    only requested for diagrams that use those libraries.
+
+  Inter and Instrument Serif (public/fonts)
+    Web fonts by The Inter Project Authors and The Instrument Serif Project
+    Authors, licensed under the SIL Open Font License, Version 1.1. The full
+    license text is at public/fonts/OFL.txt. Fonts are self-hosted so the app
+    makes no third-party requests; see scripts/vendor-fonts.ts.
+
+Trademarks
+  "draw.io" and "diagrams.net" are trademarks of JGraph Ltd. Boxology is an
+  independent tool that reads and writes the draw.io file format. It is neither
+  affiliated with nor endorsed by JGraph Ltd. Those marks are used only in
+  descriptive text to state compatibility.

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    // `node` is here for server/ and scripts/. The Worker runs on workerd and
+    // never touches those APIs, so this stays a convenience rather than a rule.
+    "types": ["vite/client", "node", "bun"]
+  },
+  "include": ["src", "worker", "server", "scripts", "vite.config.ts"]
+}

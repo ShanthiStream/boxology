@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "boxology",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-09-01",
+
+  // No account_id on purpose: this project is deployed to whichever
+  // Cloudflare account is authenticated at deploy time. Pin it via
+  // CLOUDFLARE_ACCOUNT_ID if you ever need to switch explicitly.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  },
+
+  // Non-secret defaults. Secrets (LLM_API_KEY) go in `wrangler secret put`
+  // for deployed environments, or .dev.vars for local dev.
+  "vars": {
+    "LLM_PROVIDER": "openai",
+    "LLM_MODEL": "gpt-4.1-mini"
+  }
+}

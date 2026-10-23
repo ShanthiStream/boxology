@@ -1,0 +1,22 @@
+# Local development secrets. Copy to `.dev.vars` — never commit that file.
+#
+# Provider-agnostic: this shape works for OpenAI, OpenRouter, Groq, Together,
+# DeepSeek, LM Studio and Ollama. Only these four variables are ever read.
+
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4.1-mini
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=sk-replace-me
+
+# --- Anthropic instead -------------------------------------------------------
+# LLM_PROVIDER=anthropic
+# LLM_MODEL=claude-sonnet-4-5
+# LLM_API_KEY=sk-ant-replace-me
+
+# --- Local Ollama (no key required) -----------------------------------------
+# LLM_BASE_URL=http://localhost:11434/v1
+# LLM_MODEL=qwen2.5-coder:14b
+
+# --- OpenRouter --------------------------------------------------------------
+# LLM_BASE_URL=https://openrouter.ai/api/v1
+# LLM_MODEL=anthropic/claude-sonnet-4.5

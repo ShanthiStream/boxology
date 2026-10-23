@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.dev.vars
+.env
+.env.*
+bun.lockb
+.DS_Store
+.wrangler/
+*.log
+release/

@@ -1,0 +1,52 @@
+{
+  "name": "boxology",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Describe a diagram. Get an editable draw.io file.",
+  "license": "Apache-2.0",
+  "bin": {
+    "boxology": "bin/boxology.mjs"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "NOTICE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:worker": "wrangler dev",
+    "dev:local": "bun server/local.ts",
+    "build": "tsc --noEmit && vite build && bun run build:server",
+    "build:ui": "vite build",
+    "build:server": "bun build server/local.ts --target=node --outfile=dist/server.mjs",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "ref": "bun scripts/build-reference.ts",
+    "fonts": "bun scripts/vendor-fonts.ts",
+    "icons": "python3 scripts/build-icons.py",
+    "start": "node dist/server.mjs",
+    "package": "bun run build && mkdir -p release && npm pack --pack-destination release",
+    "prepublishOnly": "bun run build",
+    "deploy": "vite build && wrangler deploy"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.31",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "3.4.17",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "wrangler": "^4.151.2"
+  }
+}

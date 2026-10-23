@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink text-text font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent/30 text-text;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-ink;
+  }
+
+  textarea,
+  input {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line px-3 py-2
+           text-[13px] font-medium text-text transition-colors duration-150
+           hover:border-white/25 hover:bg-raise active:translate-y-px
+           disabled:pointer-events-none disabled:opacity-40;
+  }
+
+  .btn-accent {
+    @apply border-transparent bg-accent text-ink hover:bg-accent/90 hover:border-transparent;
+  }
+
+  .chip {
+    @apply rounded-full border border-line px-3 py-1 text-[12px] text-mute transition-colors
+           hover:border-white/25 hover:text-text;
+  }
+
+  .kbd {
+    @apply rounded border border-line bg-raise px-1.5 py-0.5 font-mono text-[10px] text-mute;
+  }
+}
+
+/* Subtle dotted canvas so the preview area reads as a workspace, not a void. */
+.canvas-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 18px 18px;
+  background-position: -1px -1px;
+}
+
+.shimmer {
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.02) 20%,
+    rgba(255, 255, 255, 0.06) 40%,
+    rgba(255, 255, 255, 0.02) 60%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Boxology">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="34%" r="82%">
+      <stop offset="0" stop-color="#191C20"/>
+      <stop offset="0.58" stop-color="#0C0E10"/>
+      <stop offset="1" stop-color="#08090A"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- The product in one glyph: a hollow input node, an elbow connector and a
+       filled output node. A single lime mark keeps it readable down to 32px;
+       every measure is a multiple of 4 so the downsample stays crisp. -->
+  <g fill="none" stroke="#D8FF3E" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="176" y="196" width="348" height="236" rx="64" stroke-width="60"/>
+    <rect x="500" y="592" width="348" height="236" rx="64" stroke-width="60" fill="#D8FF3E"/>
+    <path d="M350 432 V514 H674 V592" stroke-width="44"/>
+  </g>
+</svg>
