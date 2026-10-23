@@ -27,38 +27,32 @@ everyone's keys.
 
 ### Install
 
-Requires Node 20+. The package has no runtime dependencies.
+Requires [Bun](https://bun.sh) to build and Node 20+ to run. The built app has
+no runtime dependencies.
 
 ```bash
-npx boxology                  # one-off, nothing left behind
-npm install -g boxology       # or install it as a command
-boxology
+git clone https://github.com/ShanthiStream/boxology
+cd boxology
+bun install
+bun run build        # tsc + vite + server bundle → dist/
+bun run start        # http://127.0.0.1:8787, opens your browser
 ```
 
-It serves the UI at <http://127.0.0.1:8787> and opens your browser. Run
-`boxology --help` for the options.
+`npm install -g .` inside the clone puts the `boxology` command on your `PATH`,
+which is what the flags below assume. Boxology is not on npm yet — when it is,
+`npx boxology` will do the same without the clone.
 
 Chrome and Edge can then install it as a real app window — **Install Boxology**
 from the address bar, or ⋮ → Cast, save and share → Install page as app. It gets
 its own Dock/taskbar icon and no tab strip, while still talking only to your
 machine (Safari: File → Add to Dock).
 
-Not on npm yet? `bun run package` builds an installable tarball:
+Prefer one file over a clone? `bun run package` builds an installable tarball:
 
 ```bash
 bun run package
 npm install -g ./release/boxology-0.1.0.tgz
 boxology
-```
-
-### From source
-
-Requires [Bun](https://bun.sh) (to build) and Node 20+ (to run).
-
-```bash
-bun install
-bun run build        # tsc + vite + server bundle → dist/
-bun run start        # http://127.0.0.1:8787, opens your browser
 ```
 
 On first launch the settings dialog opens. Pick a provider, paste a key (or point
