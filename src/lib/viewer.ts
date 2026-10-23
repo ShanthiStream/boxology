@@ -17,6 +17,15 @@
 
 const VIEWER_SRC = '/vendor/viewer-static.min.js';
 
+/**
+ * White margin kept around the drawing, in diagram units.
+ *
+ * draw.io calls this `border` and applies it once per side, so the sheet that
+ * holds a diagram is its measured bounds plus twice this. The preview uses the
+ * same constant to size that sheet before the viewer has drawn anything.
+ */
+export const DIAGRAM_BORDER = 40;
+
 export interface GraphViewerOptions {
   nav?: boolean;
   resize?: boolean;
@@ -35,8 +44,24 @@ declare global {
       container: HTMLElement,
       xml: Element,
       options?: GraphViewerOptions,
-    ) => { destroy?: () => void };
+    ) => { destroy?: () => void; graph?: ViewerGraph };
   }
+}
+
+/** The slice of mxGraph the preview drives directly. */
+interface ViewerGraph {
+  centerZoom: boolean;
+  zoomTo: (scale: number) => void;
+}
+
+/** A live render, plus the one control the preview needs over it. */
+export interface DiagramViewer {
+  destroy: () => void;
+  /**
+   * Scale the drawing. `1` is 100%; the caller is responsible for resizing the
+   * sheet it sits on, because the render itself does not grow.
+   */
+  setZoom: (scale: number) => void;
 }
 
 let pending: Promise<void> | null = null;
@@ -64,7 +89,7 @@ export function loadViewer(): Promise<void> {
   return pending;
 }
 
-export function renderDiagram(container: HTMLElement, xml: string): () => void {
+export function renderDiagram(container: HTMLElement, xml: string): DiagramViewer {
   if (!window.GraphViewer || !window.mxUtils) throw new Error('Viewer not loaded');
 
   // GraphViewer reads `xml.ownerDocument`, so it needs a DOM element. Passing
@@ -76,17 +101,30 @@ export function renderDiagram(container: HTMLElement, xml: string): () => void {
   const viewer = new window.GraphViewer(container, node, {
     nav: true,
     resize: true,
-    border: 24,
+    border: DIAGRAM_BORDER,
     lightbox: false,
   });
 
-  return () => {
-    try {
-      viewer.destroy?.();
-    } catch {
-      // viewer already torn down
-    }
-    container.replaceChildren();
+  const graph = viewer.graph;
+
+  return {
+    destroy() {
+      try {
+        viewer.destroy?.();
+      } catch {
+        // viewer already torn down
+      }
+      container.replaceChildren();
+    },
+
+    setZoom(scale) {
+      if (!graph) return;
+      // draw.io keeps the *centre* of the drawing in place while zooming. That
+      // walks the diagram off the sheet we sized for it, so zoom from the origin
+      // instead: every scale then lays out exactly like 100%, just larger.
+      graph.centerZoom = false;
+      graph.zoomTo(scale);
+    },
   };
 }
 
@@ -95,7 +133,8 @@ export function renderDiagram(container: HTMLElement, xml: string): () => void {
  *
  * GraphViewer renders at 1:1 and caps zoom-in at 100%, so a small diagram on a
  * full-pane canvas sits in a corner of a huge white page. Sizing the sheet to
- * the content keeps the diagram filling its frame at any diagram size.
+ * the content keeps the diagram filling its frame at any diagram size; when the
+ * sheet is larger than the pane, the pane scrolls rather than clipping it.
  *
  * Only children of the root layer are measured: nested cells store coordinates
  * relative to their parent, so including them would inflate the bounds.

@@ -48,6 +48,13 @@
   .kbd {
     @apply rounded border border-line bg-raise px-1.5 py-0.5 font-mono text-[10px] text-mute;
   }
+
+  /* One button in the floating zoom pill over the preview canvas. */
+  .zoom-btn {
+    @apply flex h-7 w-7 items-center justify-center rounded-full text-[15px] leading-none text-mute
+           transition-colors duration-150 hover:bg-raise hover:text-text
+           disabled:pointer-events-none disabled:opacity-30;
+  }
 }
 
 /* Subtle dotted canvas so the preview area reads as a workspace, not a void. */

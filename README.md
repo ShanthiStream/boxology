@@ -175,7 +175,7 @@ draw.io XML reference from `shared/xml-essentials.md` after that file changes.
 1. **Describe the diagram.** One or two sentences work better than a paragraph. Name the parts, say what connects to what, and mention the shape if it matters (flowchart, ER diagram, swimlanes). The prompt is capped at 4,000 characters.
 2. **Pick a model.** The header shows the current one; click it to change. Ollama and Claude Code need no key. See [Connecting a model](#connecting-a-model).
 3. **Generate.** Press **Generate diagram** or `⌘/Ctrl + Enter`. A typical diagram takes a few seconds; the request is one model call with the official draw.io XML rules in the system prompt.
-4. **Check the preview.** The panel renders the returned XML with the real draw.io viewer, at the diagram's own size rather than the pane's. The filename above it is derived from your prompt. If the model returned broken XML, the repair pass in `worker/xml.ts` fixes the common cases; if it still fails, you get an error instead of an empty canvas.
+4. **Check the preview.** The panel renders the returned XML with the real draw.io viewer, at the diagram's own size rather than the pane's, and scrolls when the diagram is larger than the pane. The floating **− / 100% / +** control in the corner zooms between 25% and 400%; the percentage shows the current scale and clicking it returns to 100%. The filename above it is derived from your prompt. If the model returned broken XML, the repair pass in `worker/xml.ts` fixes the common cases; if it still fails, you get an error instead of an empty canvas.
 5. **Edit it.** **Open in draw.io** sends the diagram to the editor in the URL fragment, so nothing is uploaded on the way. **Copy link** copies the same fragment. From there the file is yours to edit, and Boxology is out of the picture.
 6. **Download.** `.drawio` for the file, PNG or JPG for a picture. Both images render in the browser from the vendored viewer, at 2× and cropped to the diagram.
 7. **Nothing is stored.** No history, no drafts, no account. If you close the tab without downloading, the diagram is gone.
@@ -312,7 +312,13 @@ compiled into `worker/reference.ts`. After updating it, run `bun run ref`.
    `data-mxgraph` attribute path.
 3. **The viewer caps zoom-in at 100%.** `auto-fit` can only shrink, so a small
    diagram lands in the corner of a large canvas. The preview sizes its sheet to
-   the diagram's measured bounds instead.
+   the diagram's measured bounds instead, and lets the pane scroll when the sheet
+   is bigger than the space available — clamping the sheet to the pane would put
+   the rest of a large diagram behind `overflow: hidden`, where nothing can reach
+   it. The zoom control calls `graph.zoomTo`, which is *not* capped, and leaves
+   `centerZoom` off so a step scales from the origin: every scale then lays out
+   exactly like 100%, which is what lets the sheet be sized as
+   `(bounds + 2 × border) × zoom` and stay a true page.
 4. **HTML in an XML attribute kills the whole file.** Models happily emit
    `value="Pay<br>Now"` with `html=1` in the style. XML requires `&lt;br&gt;`,
    and draw.io rejects the entire diagram otherwise. `sanitize` repairs markup
@@ -326,7 +332,9 @@ sized to the diagram, then rasterised through an `<img>` and a canvas. draw.io's
 own export is an editor action on their servers, and uploading the diagram just
 to get a picture of it would contradict the rest of the app.
 
-- **Offscreen, at 1:1.** Exporting the on-screen preview would bake in whatever scale the pane imposed on a big diagram. The offscreen render is always the diagram's own size, then 2× for sharpness.
+- **Offscreen, at 1:1.** Exporting the on-screen preview would bake in the fact
+  that the pane only shows the top-left slice of a diagram too big for it. The
+  offscreen render is always the diagram's own size, then 2× for sharpness.
 - **Tight crop.** Bounds come from the geometry, not the canvas, so a diagram that spilled past its sheet still exports whole. HTML labels are measured through the shape they sit in; draw.io parks each `<foreignObject>` at `x=-9879` to centre text, and measuring that would produce a canvas the size of a football pitch.
 - **Light colours on white.** draw.io writes label colours as `light-dark(light, dark)`. A detached SVG has no colour scheme, so the light value is committed and both formats get a white page.
 - **No editor furniture.** Collapse/expand handles are stripped; they belong to editing, not to the picture.

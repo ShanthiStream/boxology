@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GenerateResult, Phase } from '../types';
-import { diagramSize, loadViewer, renderDiagram } from '../lib/viewer';
+import { DIAGRAM_BORDER, diagramSize, loadViewer, renderDiagram, type DiagramViewer } from '../lib/viewer';
 import { downloadBlob, exportDiagram, type ImageFormat } from '../lib/export';
 
 interface Props {
   result: GenerateResult | null;
   phase: Phase;
 }
+
+/**
+ * Zoom stops. A ladder of round percentages reads better on the button than
+ * multiplying by 1.2 each time, which lands on 120%, 144%, 172.8%.
+ */
+const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
+const ZOOM_MIN = Math.min(...ZOOM_STEPS);
+const ZOOM_MAX = Math.max(...ZOOM_STEPS);
 
 function EmptyState() {
   return (
@@ -39,7 +47,12 @@ export function PreviewPane({ result, phase }: Props) {
   const [viewerReady, setViewerReady] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportNote, setExportNote] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [zoom, setZoom] = useState(1);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<DiagramViewer | null>(null);
+  /** Zoom we came from, so the viewport can keep its centre across a step. */
+  const zoomFrom = useRef<number | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const noteTimer = useRef<number | undefined>(undefined);
 
@@ -55,14 +68,20 @@ export function PreviewPane({ result, phase }: Props) {
     if (!result || !canvasRef.current) return;
 
     let cancelled = false;
-    let teardown: (() => void) | undefined;
+    let viewer: DiagramViewer | undefined;
+    // A new diagram can be a different size, so start it at the top-left rather
+    // than wherever the previous one was scrolled to, and at 100%.
+    scrollerRef.current?.scrollTo({ top: 0, left: 0 });
+    zoomFrom.current = null;
+    setZoom(1);
     setViewerError(null);
     setViewerReady(false);
 
     loadViewer()
       .then(() => {
         if (cancelled || !canvasRef.current) return;
-        teardown = renderDiagram(canvasRef.current, result.xml);
+        viewer = renderDiagram(canvasRef.current, result.xml);
+        viewerRef.current = viewer;
         setViewerReady(true);
       })
       .catch((error: unknown) => {
@@ -78,9 +97,45 @@ export function PreviewPane({ result, phase }: Props) {
 
     return () => {
       cancelled = true;
-      teardown?.();
+      viewer?.destroy();
+      viewerRef.current = null;
     };
   }, [result]);
+
+  /**
+   * Keep whatever was in the middle of the pane in the middle of the pane.
+   *
+   * The sheet grows from its top-left corner, so without this a zoom step while
+   * you are looking at the bottom-right of a big diagram throws you back to the
+   * start of it. Runs after the sheet has been re-laid out at the new size.
+   */
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const from = zoomFrom.current;
+    zoomFrom.current = null;
+    if (!scroller || from === null || from === zoom) return;
+
+    const ratio = zoom / from;
+    const cx = scroller.clientWidth / 2;
+    const cy = scroller.clientHeight / 2;
+    scroller.scrollLeft = (scroller.scrollLeft + cx) * ratio - cx;
+    scroller.scrollTop = (scroller.scrollTop + cy) * ratio - cy;
+  }, [zoom]);
+
+  function zoomTo(next: number) {
+    if (!viewerRef.current || next === zoom) return;
+    zoomFrom.current = zoom;
+    viewerRef.current.setZoom(next);
+    setZoom(next);
+  }
+
+  function stepZoom(direction: 1 | -1) {
+    const index = ZOOM_STEPS.indexOf(zoom);
+    // Between stops (a value we never set) start from the nearest one.
+    const from = index === -1 ? ZOOM_STEPS.findIndex((step) => step > zoom) - 1 : index;
+    const next = ZOOM_STEPS[Math.min(Math.max(from + direction, 0), ZOOM_STEPS.length - 1)];
+    if (next !== undefined) zoomTo(next);
+  }
 
   function download(target: GenerateResult) {
     downloadBlob(new Blob([target.file.content], { type: 'application/xml' }), target.file.name);
@@ -185,29 +240,79 @@ export function PreviewPane({ result, phase }: Props) {
         </div>
       </div>
 
-      <div className="canvas-grid relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0B0C0E] p-4">
+      <div className="canvas-grid relative flex min-h-0 flex-1 flex-col bg-[#0B0C0E]">
         {result ? (
           <div
-            className="relative max-h-full max-w-full overflow-hidden rounded-md bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.8)] ring-1 ring-black/50"
-            style={
-              size
-                ? {
-                    width: Math.min(size.width + 80, 10000),
-                    height: Math.min(size.height + 80, 10000),
-                  }
-                : undefined
-            }
+            ref={scrollerRef}
+            className="flex min-h-0 flex-1 overflow-auto overscroll-contain p-4"
           >
-            <div ref={canvasRef} className="h-full w-full" />
-            {!viewerReady && !viewerError ? (
-              <div className="absolute inset-0 flex items-center justify-center text-[12px] text-mute">
-                Loading draw.io viewer…
-              </div>
-            ) : null}
+            {/*
+              The sheet is the diagram's own size, not the pane's. GraphViewer
+              draws at 1:1, so squeezing the sheet to the pane would hide part of
+              a large diagram behind `overflow: hidden`; at full size the pane
+              scrolls to it instead. `shrink-0` is load-bearing: without it the
+              flex item shrinks back to the pane width.
+            */}
+            <div
+              className="relative m-auto shrink-0 overflow-hidden rounded-md bg-white shadow-[0_18px_50px_-12px_rgba(0,0,0,0.8)] ring-1 ring-black/50"
+              style={
+                size
+                  ? {
+                      width: Math.min(Math.round((size.width + DIAGRAM_BORDER * 2) * zoom), 10000),
+                      height: Math.min(Math.round((size.height + DIAGRAM_BORDER * 2) * zoom), 10000),
+                    }
+                  : undefined
+              }
+            >
+              <div ref={canvasRef} className="h-full w-full" />
+            </div>
           </div>
         ) : (
           <EmptyState />
         )}
+
+        {result ? (
+          <div className="absolute bottom-3 right-3 flex items-center gap-0.5 rounded-full border border-line bg-panel/90 p-1 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.9)] backdrop-blur-sm">
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={() => stepZoom(-1)}
+              disabled={!viewerReady || zoom <= ZOOM_MIN}
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="zoom-btn w-auto min-w-[3rem] px-1 font-mono text-[11px] tabular-nums"
+              onClick={() => zoomTo(1)}
+              disabled={!viewerReady}
+              aria-label={`Zoom ${Math.round(zoom * 100)} percent. Reset to 100%.`}
+              title="Reset to 100%"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={() => stepZoom(1)}
+              disabled={!viewerReady || zoom >= ZOOM_MAX}
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              +
+            </button>
+          </div>
+        ) : null}
+
+        {result && !viewerReady && !viewerError ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="rounded-md border border-line bg-panel/90 px-3 py-1.5 text-[12px] text-mute">
+              Loading draw.io viewer…
+            </span>
+          </div>
+        ) : null}
 
         {viewerError ? (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/80 p-6">

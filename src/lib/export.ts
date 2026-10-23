@@ -8,10 +8,11 @@
  *
  * The source is the same `GraphViewer` render the preview uses, drawn into a
  * throwaway container sized to the diagram. Rendering offscreen matters: the
- * preview scales a big diagram down to fit the pane, and exporting that would
- * produce a small, soft image. Offscreen, the drawing is always 1:1.
+ * preview pane only shows the slice of a large diagram that fits in it, so
+ * exporting the on-screen canvas would produce a cropped picture. Offscreen,
+ * the whole drawing is rendered at 1:1.
  */
-import { diagramSize, loadViewer, renderDiagram } from './viewer';
+import { diagramSize, loadViewer, renderDiagram, type DiagramViewer } from './viewer';
 
 export type ImageFormat = 'png' | 'jpeg';
 
@@ -238,10 +239,10 @@ export async function renderToBlob(
     `width:${Math.ceil(natural.width) + 160}px;height:${Math.ceil(natural.height) + 160}px;`;
   document.body.appendChild(host);
 
-  let teardown: (() => void) | undefined;
+  let viewer: DiagramViewer | undefined;
 
   try {
-    teardown = renderDiagram(host, xml);
+    viewer = renderDiagram(host, xml);
     await nextFrame();
     await nextFrame();
 
@@ -293,7 +294,7 @@ export async function renderToBlob(
     if (!blob) throw new Error('The browser could not encode the image.');
     return blob;
   } finally {
-    teardown?.();
+    viewer?.destroy();
     host.remove();
   }
 }
