@@ -9,7 +9,20 @@ Edge: <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;stro
 
 Labels: html=1 in every style; escape HTML in values (&lt;b&gt;Name&lt;/b&gt;&lt;br&gt;detail). Line break &lt;br&gt;, never \n. Keep labels ≤ 4 words for icon shapes, use a second line for type.
 
-Shapes – Enterprise Libraries:
+Provider detection and icon selection – infer provider from user prompt, never default to generic rectangles:
+
+Detect provider from prompt keywords:
+- AWS / Amazon / EC2 / Lambda / S3 / DynamoDB / API Gateway / CloudFront / SQS / SNS / RDS → use AWS icons.
+- Azure / Microsoft / App Service / Blob / Cosmos DB / VM / VNet / AKS → use Azure icons.
+- GCP / Google Cloud / Compute Engine / Cloud Storage / BigQuery / GKE → use GCP icons.
+- Cisco / router / switch / firewall → use Cisco icons.
+- UML / class / component / use case / sequence → use UML icons.
+- Android / iOS / mobile / phone / tablet → use mobile device icons.
+
+General rules:
+- Always prefer a library icon shape with aspect=fixed and verticalLabelPosition=bottom over generic rounded rectangles.
+- If exact service name is unknown, pick the closest library shape in the detected provider library. Keep label short and add a second line for type.
+- Never use shape=rounded / shape=rectangle for cloud services, networking gear, or UML elements. Use generic boxes only for abstract concepts like "Customer", "Process", "Decision".
 
 Cloud providers – use the official icon shape libraries, never a plain box:
 - AWS: use shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.<service>. Critical: strokeColor=#ffffff; fillColor per category; verticalLabelPosition=bottom; aspect=fixed; outlineConnect=0; sketch=0; points connection points. Base style: sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=<CATEGORY>;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.<service>
@@ -20,8 +33,25 @@ Common services:
 * DynamoDB: resIcon=mxgraph.aws4.dynamodb; fillColor=#C925D1
 * SQS: resIcon=mxgraph.aws4.sqs; fillColor=#E7157B
 * CloudFront: resIcon=mxgraph.aws4.cloudfront; fillColor=#8C4FFF
-- Azure: use mxgraph.azure.* shapes or image shapes from azure2 library. Example: shape=mxgraph.azure.virtual_machine; or image;image=https://app.diagrams.net/img/lib/azure2/compute/... . Keep verticalLabelPosition=bottom.
-- GCP: use mxgraph.gcp.* shapes, e.g. mxgraph.gcp.compute.vm, mxgraph.gcp.storage.bucket. Keep aspect=fixed.
+
+- Azure: prefer azure2 image shapes for fidelity. Use shape=image;aspect=fixed;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;image=https://app.diagrams.net/img/lib/azure2/<category>/<Service_Name>.svg
+Common mappings:
+* Virtual Machine: image=https://app.diagrams.net/img/lib/azure2/compute/Virtual_Machine.svg
+* App Service: image=https://app.diagrams.net/img/lib/azure2/compute/App_Service.svg
+* Blob Storage: image=https://app.diagrams.net/img/lib/azure2/storage/Storage_Blob.svg
+* Cosmos DB: image=https://app.diagrams.net/img/lib/azure2/databases/Cosmos_DB.svg
+* AKS: image=https://app.diagrams.net/img/lib/azure2/containers/Kubernetes_Service.svg
+* VNet: image=https://app.diagrams.net/img/lib/azure2/networking/Virtual_Network.svg
+Fallback to mxgraph.azure.* shapes e.g. shape=mxgraph.azure.virtual_machine; Keep verticalLabelPosition=bottom, aspect=fixed.
+
+- GCP: use mxgraph.gcp2.* or mxgraph.gcp.* shapes with aspect=fixed.
+Common mappings:
+* Compute Engine: shape=mxgraph.gcp2.compute_engine_2
+* Cloud Storage: shape=mxgraph.gcp2.storage_bucket
+* BigQuery: shape=mxgraph.gcp2.bigquery
+* GKE: shape=mxgraph.gcp2.kubernetes_engine
+* Cloud Run: shape=mxgraph.gcp2.cloud_run
+Fallback to image shapes from gcp library if needed.
 
 Networking & infra:
 - Cisco: shape=mxgraph.cisco.router, shape=mxgraph.cisco.switch, shape=mxgraph.cisco.firewall, shape=mxgraph.cisco.loadbalancer
