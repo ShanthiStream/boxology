@@ -109,6 +109,7 @@ export default function App() {
           error={error}
           onPromptChange={setPrompt}
           onSubmit={generate}
+          onErrorDismiss={() => setError(null)}
         />
         <PreviewPane result={result} phase={phase} />
       </main>

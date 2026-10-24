@@ -1,4 +1,5 @@
 import type { Phase } from '../types';
+import { useEffect, useState } from 'react';
 
 const EXAMPLES = [
   {
@@ -24,10 +25,20 @@ interface Props {
   error: string | null;
   onPromptChange: (value: string) => void;
   onSubmit: () => void;
+  onErrorDismiss?: () => void;
 }
 
-export function PromptPanel({ prompt, phase, error, onPromptChange, onSubmit }: Props) {
+export function PromptPanel({ prompt, phase, error, onPromptChange, onSubmit, onErrorDismiss }: Props) {
   const loading = phase === 'loading';
+  const [visibleError, setVisibleError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (error) {
+      setVisibleError(error);
+      const t = setTimeout(() => setVisibleError(null), 8000);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
 
   return (
     <section
@@ -102,10 +113,21 @@ export function PromptPanel({ prompt, phase, error, onPromptChange, onSubmit }: 
         </div>
 
         <div aria-live="polite" className="min-h-[18px]">
-          {error ? (
-            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-2 text-[12px] leading-relaxed text-red-300">
-              {error}
-            </p>
+          {visibleError ? (
+            <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-2 text-[12px] leading-relaxed text-red-300">
+              <span className="flex-1">{visibleError}</span>
+              <button
+                type="button"
+                aria-label="Dismiss error"
+                className="ml-1 text-red-300/80 hover:text-red-200"
+                onClick={() => {
+                  setVisibleError(null);
+                  onErrorDismiss?.();
+                }}
+              >
+                ✕
+              </button>
+            </div>
           ) : null}
         </div>
       </form>
