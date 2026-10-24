@@ -12,7 +12,14 @@ Labels: html=1 in every style; escape HTML in values (&lt;b&gt;Name&lt;/b&gt;&lt
 Shapes – Enterprise Libraries:
 
 Cloud providers – use the official icon shape libraries, never a plain box:
-- AWS: use shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.<service>. Critical: strokeColor=#ffffff; fillColor per category; verticalLabelPosition=bottom; aspect=fixed. Examples: resIcon=mxgraph.aws4.s3, mxgraph.aws4.lambda, mxgraph.aws4.ec2, mxgraph.aws4.rds, mxgraph.aws4.api_gateway, mxgraph.aws4.cloudfront, mxgraph.aws4.dynamodb, mxgraph.aws4.sqs, mxgraph.aws4.sns. Base style includes points connection points and outlineConnect=0.
+- AWS: use shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.<service>. Critical: strokeColor=#ffffff; fillColor per category; verticalLabelPosition=bottom; aspect=fixed; outlineConnect=0; sketch=0; points connection points. Base style: sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=<CATEGORY>;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.<service>
+Common services:
+* API Gateway: resIcon=mxgraph.aws4.api_gateway; fillColor=#E7157B
+* Lambda: resIcon=mxgraph.aws4.lambda; fillColor=#ED7100
+* S3: resIcon=mxgraph.aws4.s3; fillColor=#7AA116
+* DynamoDB: resIcon=mxgraph.aws4.dynamodb; fillColor=#C925D1
+* SQS: resIcon=mxgraph.aws4.sqs; fillColor=#E7157B
+* CloudFront: resIcon=mxgraph.aws4.cloudfront; fillColor=#8C4FFF
 - Azure: use mxgraph.azure.* shapes or image shapes from azure2 library. Example: shape=mxgraph.azure.virtual_machine; or image;image=https://app.diagrams.net/img/lib/azure2/compute/... . Keep verticalLabelPosition=bottom.
 - GCP: use mxgraph.gcp.* shapes, e.g. mxgraph.gcp.compute.vm, mxgraph.gcp.storage.bucket. Keep aspect=fixed.
 
